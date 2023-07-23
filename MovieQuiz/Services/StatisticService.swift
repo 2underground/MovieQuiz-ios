@@ -1,56 +1,77 @@
-
-
 import Foundation
 
-private enum Keys: String {
-    case correct, total, bestGame, gamesCount
+protocol StatisticService {
+    var totalAccuracy: Double { get }
+    var gamesCount: Int { get set}
+    var bestGame: GameRecord { get }
+    func store(correct count: Int, total amount: Int)
+}
+
+struct GameRecord: Codable {
+    let correct: Int
+    let total: Int
+    let date: Date
+    
+    
+    func gameСomparison(currentCorrect: Int, recordCorrect: Int ) -> Bool {
+        currentCorrect > recordCorrect
+    }
 }
 
 final class StatisticServiceImplementation: StatisticService {
+    
+    private enum Keys: String {
+        case correct, total, bestGame, gamesCount
+    }
     private let userDefaults = UserDefaults.standard
     
-    private var correct: Double {
-        get {
-            userDefaults.double(forKey: Keys.correct.rawValue)
-        }
-        set {
-            userDefaults.set(newValue, forKey: Keys.correct.rawValue)
+    func store(correct count: Int, total amount: Int) {
+        let keyCorrect = Keys.correct.rawValue
+        let keyTotal = Keys.total.rawValue
+        //let keyBestGame = Keys.bestGame.rawValue
+        let correctAnswers = userDefaults.integer(forKey: keyCorrect)
+        let newCorrectAnswers = correctAnswers + count
+        userDefaults.set(newCorrectAnswers, forKey: keyCorrect)
+        
+        let totalQuestions = userDefaults.integer(forKey: keyTotal)
+        let newTotalQuestions = totalQuestions + amount
+        userDefaults.set(newTotalQuestions, forKey: keyTotal)
+        let gamesCount = userDefaults.integer(forKey: Keys.gamesCount.rawValue)
+        let newGamesCount = gamesCount + 1
+        userDefaults.set(newGamesCount, forKey: Keys.gamesCount.rawValue)
+        
+        if count > bestGame.correct {
+            bestGame = GameRecord(correct: count, total: amount, date: Date())
         }
     }
     
-    private var total: Double {
+    var gamesCount: Int {
         get {
-            userDefaults.double(forKey: Keys.total.rawValue)
+            return userDefaults.integer(forKey: Keys.gamesCount.rawValue)
         }
         set {
-            userDefaults.set(newValue, forKey: Keys.total.rawValue)
+            guard let data = try? JSONEncoder().encode(newValue) else {
+                print("Невозможно сосчитать кол-во игр")
+                return
+            }
+            userDefaults.set(data, forKey: Keys.gamesCount.rawValue)
         }
     }
     
     var totalAccuracy: Double {
         get {
-            total == 0
-            ? 0
-            : correct / total * 100
+            let сorrect = (userDefaults.value(forKey: Keys.correct.rawValue) as? Double) ?? 0
+            let questions = (userDefaults.value(forKey: Keys.total.rawValue) as? Double) ?? 0
+            return сorrect / questions * 100
         }
     }
- 
-    var gamesCount: Int {
-        get {
-            userDefaults.integer(forKey: Keys.gamesCount.rawValue)
-        }
-        set {
-            userDefaults.set(newValue, forKey: Keys.gamesCount.rawValue)
-        }
-    }
- 
+    
     var bestGame: GameRecord {
         get {
             guard let data = userDefaults.data(forKey: Keys.bestGame.rawValue),
                   let record = try? JSONDecoder().decode(GameRecord.self, from: data) else {
-                      return .init(correct: 0, total: 0, date: Date())
-                  }
-            
+                return .init(correct: 0, total: 0, date: Date())
+            }
             return record
         }
         set {
@@ -61,25 +82,4 @@ final class StatisticServiceImplementation: StatisticService {
             userDefaults.set(data, forKey: Keys.bestGame.rawValue)
         }
     }
-    
-    func store(correct count: Int, total amount: Int) {
-        gamesCount += 1
-        
-        let currentGame = GameRecord(
-            correct: count,
-            total: amount,
-            date: Date()
-        )
-        
-        if bestGame.correct < currentGame.correct {
-            bestGame = currentGame
-        }
-        
-        correct += Double(currentGame.correct)
-        total += Double(currentGame.total)
-    }
 }
-
-
-
-
