@@ -1,5 +1,3 @@
-
-
 import Foundation
 
 protocol MoviesLoading {
@@ -7,14 +5,17 @@ protocol MoviesLoading {
 }
 
 struct MoviesLoader: MoviesLoading {
-    // MARK: - NetworkClient
-    private let networkClient = NetworkClient()
+    private let networkClient: NetworkRouting
     
-    // MARK: - URL
+    init(networkClient: NetworkRouting = NetworkClient()) {
+        self.networkClient = networkClient
+    }
+    
     private var mostPopularMoviesUrl: URL {
         guard let url = URL(string: "https://imdb-api.com/en/API/Top250Movies/k_zcuw1ytf") else {
             preconditionFailure("Unable to construct mostPopularMoviesUrl")
         }
+        
         return url
     }
     
@@ -23,8 +24,7 @@ struct MoviesLoader: MoviesLoading {
             switch result {
             case .success(let data):
                 do {
-                    let decoder = JSONDecoder()
-                    let mostPopularMovies = try decoder.decode(MostPopularMovies.self, from: data)
+                    let mostPopularMovies = try JSONDecoder().decode(MostPopularMovies.self, from: data)
                     handler(.success(mostPopularMovies))
                 } catch {
                     handler(.failure(error))

@@ -1,9 +1,7 @@
-
-
 import Foundation
 
 protocol QuestionFactoryDelegate: AnyObject {
     func didReceiveNextQuestion(question: QuizQuestion?)
-    func didLoadDataFromServer()
+    func didLoadDataFromServer(data: [MostPopularMovie])
     func didFailToLoadData(with error: Error)
 }
